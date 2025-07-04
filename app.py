@@ -1,9 +1,8 @@
-import os
 from dotenv import load_dotenv
 import streamlit as st
 from google import genai
 from google.genai import types
-
+import asyncio
 
 load_dotenv()
 
@@ -11,10 +10,24 @@ load_dotenv()
 client = genai.Client()
 model = "gemini-2.5-flash-preview-04-17"
 config = types.GenerateContentConfig(
-    thinking_config=types.ThinkingConfig(thinking_budget=0)
+    thinking_config=types.ThinkingConfig(thinking_budget=0),
+    response_modalities=["TEXT"]
 )
 
-# Initialize session state
+
+async def async_generate(prompt):
+    return await client.aio.models.generate_content(
+            model=model,
+            contents=prompt,
+            config=config,
+        )
+
+def run_async(prompt):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    response = loop.run_until_complete(async_generate(prompt))
+    return response
+
 if "plan" not in st.session_state:
     st.session_state.plan = None
 
@@ -27,7 +40,7 @@ st.header("Step 1: Paste Coaching Session Summary")
 summary = st.text_area("Paste your coaching session summary below:")
 
 if st.button("Generate 2-Week Plan"):
-    with st.spinner("Generating plan with Gemini..."):
+    with st.spinner("Generating plan..."):
         plan_prompt = f"""
         You are a personal AI assistant. Based on this coaching session summary, generate a personalized 2-week improvement plan.
         Include specific tasks, exercises, or reflections for each day.
@@ -35,11 +48,7 @@ if st.button("Generate 2-Week Plan"):
         SESSION SUMMARY:
         {summary}
         """
-        response = client.models.generate_content(
-            model=model,
-            contents=plan_prompt,
-            config=config,
-        )
+        response = run_async(plan_prompt)
         st.session_state.plan = response.text
         st.success("✅ Plan generated!")
 
@@ -63,11 +72,7 @@ if st.session_state.plan:
         Daily Plan:
         {day_plan}
         """
-        goal_response = client.models.generate_content(
-            model=model,
-            contents=goal_prompt,
-            config=config,
-        )
+        goal_response = run_async(goal_prompt)
         goal = goal_response.text.strip()
 
         # Generate specific check-in questions
@@ -81,11 +86,7 @@ if st.session_state.plan:
         Questions should check how the client is applying what they've learned during their coaching session.
         Be direct, concise, and supportive.
         """
-        checkin_response = client.models.generate_content(
-            model=model,
-            contents=checkin_prompt,
-            config=config,
-        )
+        checkin_response = run_async(checkin_prompt)
 
         st.subheader(f"Today's Goal: {goal}")
         st.markdown("**Check-in Questions:**")
@@ -102,11 +103,7 @@ if st.session_state.plan:
 
             Give a supportive reflection and 1 suggestion for improvement or reinforcement.
             """
-            feedback_response = client.models.generate_content(
-                model=model,
-                contents=feedback_prompt,
-                config=config,
-            )
+            feedback_response = run_async(feedback_prompt)
             st.success("✅ Check-in complete!")
             st.markdown("**AI Feedback:**")
             st.markdown(feedback_response.text)
