@@ -1,1 +1,6 @@
 .env
+transcripts/
+__pycache__/
+testing/
+secrets/
+secrets.toml

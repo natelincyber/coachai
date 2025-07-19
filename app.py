@@ -1,111 +1,94 @@
-from dotenv import load_dotenv
 import streamlit as st
-from google import genai
-from google.genai import types
-import asyncio
+from dotenv import load_dotenv
 
+from utils.roles import ROLES
+from utils.db import get_user, create_user, update_user_role, get_all_clients
+
+from std_components.auth import login_screen, onboarding_role_selection
+from std_components.client import render_client
+from std_components.coach import render_coach
+from std_components.sidebar import sidebar
+
+from streamlit_javascript import st_javascript
+from zoneinfo import ZoneInfo
+
+
+def get_tz():
+    user_timezone_str = st_javascript("""await (async () => {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    })().then(returnValue => returnValue)""")
+   
+    if not user_timezone_str:
+        user_timezone_str = "UTC"
+
+    return ZoneInfo(user_timezone_str)
+
+
+# --- Setup ---
+st.set_page_config(page_title="AI Coaching Assistant", layout="wide")
 load_dotenv()
 
-# Set up model and config using your template
-client = genai.Client()
-model = "gemini-2.5-flash-preview-04-17"
-config = types.GenerateContentConfig(
-    thinking_config=types.ThinkingConfig(thinking_budget=0),
-    response_modalities=["TEXT"]
-)
+
+def fetch_all_clients():
+    return get_all_clients()
 
 
-async def async_generate(prompt):
-    return await client.aio.models.generate_content(
-            model=model,
-            contents=prompt,
-            config=config,
-        )
+# --- Login UI ---
+if not hasattr(st, "user") or not st.user.is_logged_in:
+    login_screen()
+    st.stop()
 
-def run_async(prompt):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    response = loop.run_until_complete(async_generate(prompt))
-    return response
 
-if "plan" not in st.session_state:
-    st.session_state.plan = None
+# --- Session State Initialization ---
+if "current_plan" not in st.session_state:
+    st.session_state.current_plan = {}
 
-# App layout
-st.set_page_config(page_title="AI Coaching Plan", layout="wide")
-st.title("AI Coaching Plan Generator & Daily Check-In")
+if "calendar_update_counter" not in st.session_state:
+    st.session_state.calendar_update_counter = 1
 
-# Step 1: Generate 2-Week Plan
-st.header("Step 1: Paste Coaching Session Summary")
-summary = st.text_area("Paste your coaching session summary below:")
+if "edit_selected_goal" not in st.session_state:
+    st.session_state.edit_selected_goal = ""
 
-if st.button("Generate 2-Week Plan"):
-    with st.spinner("Generating plan..."):
-        plan_prompt = f"""
-        You are a personal AI assistant. Based on this coaching session summary, generate a personalized 2-week improvement plan.
-        Include specific tasks, exercises, or reflections for each day.
+# Get or create current user
+if "current_user" not in st.session_state:
+    user = get_user({
+        "email": st.user.email,
+        "name": st.user.name
+    })
 
-        SESSION SUMMARY:
-        {summary}
-        """
-        response = run_async(plan_prompt)
-        st.session_state.plan = response.text
-        st.success("✅ Plan generated!")
+    if user is None:
+        # Create user with no role yet, mark as first_time_user=True
+        user = create_user({
+            "email": st.user.email,
+            "name": st.user.name,
+            "role": None,
+            "first_time_user": True,
+            "created_at": "..."  # your code for timestamp here
+        })
 
-# Step 2: Display the plan
-if st.session_state.plan:
-    st.header("Your 2-Week Plan")
-    st.markdown(st.session_state.plan)
+    st.session_state.current_user = user
 
-    # Daily Check-in
-    st.header("Step 2: Daily Check-In")
-    day = st.number_input("Select a day (1-14)", min_value=1, max_value=14, step=1)
 
-    daily_plans = st.session_state.plan.split("Day")
-    if 0 < day < len(daily_plans):
-        day_plan = "Day" + daily_plans[day]
+# --- Onboarding for first-time users ---
+if st.session_state.current_user.first_time_user:
+    # Render a dedicated onboarding screen for role selection
+    onboarding_role_selection(st.user.email, st.user.name)
+    st.stop()
 
-        # Extract goal
-        goal_prompt = f"""
-        Read this daily plan and summarize the main topic or goal in a few words.
 
-        Daily Plan:
-        {day_plan}
-        """
-        goal_response = run_async(goal_prompt)
-        goal = goal_response.text.strip()
+# --- Fetch clients list if coach ---
+if "all_clients" not in st.session_state and st.session_state.current_user.role == "coach":
+    st.session_state.all_clients = get_all_clients()
 
-        # Generate specific check-in questions
-        checkin_prompt = f"""
-        You are running a daily AI check-in with a client.
+# --- Get user timezone ---
+if "client_tz" not in st.session_state:
+    st.session_state.client_tz = get_tz()
 
-        Today's goal is: {goal}
-        Today's plan: {day_plan}
+# --- Render sidebar ---
+sidebar(st.session_state.current_user)
 
-        Ask the client 2-3 specific reflective questions related to the goal.
-        Questions should check how the client is applying what they've learned during their coaching session.
-        Be direct, concise, and supportive.
-        """
-        checkin_response = run_async(checkin_prompt)
-
-        st.subheader(f"Today's Goal: {goal}")
-        st.markdown("**Check-in Questions:**")
-        st.markdown(checkin_response.text)
-
-        user_reply = st.text_area("✍️ Your Response to the Check-In:")
-        if st.button("Submit Check-In"):
-            feedback_prompt = f"""
-            A client is working on: {goal}
-            Today's plan: {day_plan}
-
-            They answered their check-in with:
-            "{user_reply}"
-
-            Give a supportive reflection and 1 suggestion for improvement or reinforcement.
-            """
-            feedback_response = run_async(feedback_prompt)
-            st.success("✅ Check-in complete!")
-            st.markdown("**AI Feedback:**")
-            st.markdown(feedback_response.text)
-    else:
-        st.error("❌ Invalid day number. Please select between 1-14.")
+# --- Render dashboards ---
+if st.session_state.current_user.role == "coach":
+    render_coach(st.session_state.current_user, st.session_state.all_clients)
+else:
+    render_client(st.session_state.current_user)
