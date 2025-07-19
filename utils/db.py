@@ -15,7 +15,7 @@ def _init_firebase():
         # try:
         #     cred = credentials.Certificate("secrets/firebase_secret.json")
         # except:
-        cred = dict(st.secrets["firebase"]['fb_secret'])
+        cred = st.secrets["firebase"]['fb_secret']
         firebase_admin.initialize_app(cred)
     
     if _db is None:
