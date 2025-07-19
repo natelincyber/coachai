@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from utils.models import CheckinSummary, Goal, User
 from typing import Dict, List
 from google.cloud.firestore_v1.base_query import FieldFilter
+import streamlit as st
 
 # Private global variable for Firestore client
 _db = None
@@ -11,7 +12,10 @@ _db = None
 def _init_firebase():
     global _db
     if not firebase_admin._apps:
-        cred = credentials.Certificate("secrets/firebase_secret.json")
+        try:
+            cred = credentials.Certificate("secrets/firebase_secret.json")
+        except:
+            cred = dict(st.secrets["firebase"]['fb_secret'])
         firebase_admin.initialize_app(cred)
     
     if _db is None:
