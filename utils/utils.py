@@ -2,6 +2,10 @@ import os
 import asyncio
 from utils.models import GoalsLiteOnly, GoalsOnly, Goal
 
+from streamlit_javascript import st_javascript
+from zoneinfo import ZoneInfo
+
+
 
 def load_file(filename: str) -> str:
     transcript_path = os.path.join("samples", filename)
@@ -21,6 +25,16 @@ def convert_goals(goals_lite: GoalsLiteOnly) -> GoalsOnly:
         full_goal = Goal(**g.model_dump())  # triggers the ID generator
         goal_dict[full_goal.id] = full_goal
     return goal_dict
+
+def get_tz():
+    user_timezone_str = st_javascript("""await (async () => {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    })().then(returnValue => returnValue)""")
+   
+    if not user_timezone_str:
+        user_timezone_str = "UTC"
+
+    return ZoneInfo(user_timezone_str)
 
 
 def run_async(coro):

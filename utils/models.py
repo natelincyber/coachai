@@ -69,7 +69,7 @@ class GoalsOnly(BaseModel):
 
 class CheckinSummary(BaseModel):
     goal_id: str
-    goal_type: str  # "main" or "coach"
+    goal_type: str
     raw_text: str
     summary: Optional[str]
     timestamp: str
@@ -77,17 +77,18 @@ class CheckinSummary(BaseModel):
 class User(BaseModel):
     email: str
     name: str
-    role: Optional[str] = None  # Role might be None initially
-    first_time_user: bool = True  # New flag to track onboarding status
     created_at: str
     active: bool
+    role: Optional[str] = None
+    first_time_user: bool = True
+    
+    current_coach: Optional[str] = None
+    clients: Optional[List[str]] = None
 
-    # Plan and goal-related
     currentPlan: Optional[Plan] = None
     previousPlans: Optional[List[Plan]] = []
     main_goals: Optional[Dict[str, Goal]] = None
 
-    # New additions for LLM chat context
-    main_goal_context: Optional[Dict[str, str]] = None  # goal_id → summary
-    coach_goal_context: Optional[Dict[str, str]] = None  # goal_id → summary
-    checkins: Optional[List[CheckinSummary]] = None  # raw + summary check-in data
+    main_goal_context: Optional[Dict[str, str]] = None
+    coach_goal_context: Optional[Dict[str, str]] = None
+    checkins: Optional[List[CheckinSummary]] = None

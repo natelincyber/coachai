@@ -12,9 +12,6 @@ _db = None
 def _init_firebase():
     global _db
     if not firebase_admin._apps:
-        # try:
-        #     cred = credentials.Certificate("secrets/firebase_secret.json")
-        # except:
         cred = credentials.Certificate(dict(st.secrets["firebase"]['fb_secret']))
         firebase_admin.initialize_app(cred)
     
@@ -37,15 +34,11 @@ def get_user(user_info: dict) -> User:
 def create_user(user_info: dict) -> User:
     doc_ref = _db.collection("users").document(user_info["email"])
     doc = doc_ref.get()
+    user = User(email=user_info["email"], name=user_info["name"], created_at=datetime.now(timezone.utc).isoformat(), active=True)
+    print(user.model_dump())
     if not doc.exists:
         doc_ref.set({
-            "email": user_info["email"],
-            "name": user_info["name"],
-            "role": user_info["role"],  # default to client
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "active": True,
-            "currentPlan": None,
-            "previousPlans": []
+            **user.model_dump()
         })
         doc = doc_ref.get()
     return User(**doc.to_dict())
@@ -57,10 +50,16 @@ def get_latest_plan(user_email):
         return p.to_dict()
     return None
 
-def get_all_clients():
-    users_ref = _db.collection("users")
-    query = users_ref.where(filter=FieldFilter("role", "==", "client")).stream()
-    return [doc.to_dict() for doc in query]
+def get_all_clients(coach_email):
+    coach_ref = _db.collection("users").document(coach_email)
+    coach_doc = coach_ref.get()
+
+    if coach_doc.exists:
+        coach_doc = coach_doc.to_dict()
+        return coach_doc.get("clients", [])
+    return []
+   
+
 
 def new_user_goals(user_email: str, new_plan: dict):
     user_ref = _db.collection("users").document(user_email)
@@ -284,3 +283,49 @@ def update_user_role(user_email: str, new_role: str) -> User:
         return User(**updated_doc.to_dict())
     else:
         raise ValueError(f"User with email {user_email} not found.")
+    
+
+def get_all_coaches():
+    users_ref = _db.collection("users")
+    query = users_ref.where(filter=FieldFilter("role", "==", "coach")).stream()
+    return [User(**doc.to_dict()) for doc in query]
+
+# updates for client and coach
+def update_client_coach(user_email, coach_email):
+    user_ref = _db.collection("users").document(user_email)
+    user_doc = user_ref.get()
+
+    if not user_doc.exists:
+        raise ValueError(f"User '{user_email}' does not exist.")
+
+    current_coach = user_doc.get("current_coach")
+
+    # Remove user from old coach's client list if there is a current coach
+    if current_coach:
+        old_coach_ref = _db.collection("users").document(current_coach)
+        old_coach_doc = old_coach_ref.get()
+        if old_coach_doc.exists:
+            old_clients = old_coach_doc.get("clients", [])
+            if user_email in old_clients:
+                old_clients.remove(user_email)
+                old_coach_ref.update({"clients": old_clients})
+
+    # Update user's current coach
+    user_ref.update({"current_coach": coach_email})
+
+    # Add user to new coach's client list
+    new_coach_ref = _db.collection("users").document(coach_email)
+    new_coach_doc = new_coach_ref.get()
+
+    if not new_coach_doc.exists:
+        raise ValueError(f"Coach '{coach_email}' does not exist.")
+
+    new_clients = new_coach_doc.get("clients")
+
+    if not new_clients:
+        new_coach_ref.update({"clients":[user_email]})
+        return
+
+    if user_email not in new_clients:
+        new_clients.append(user_email)
+        new_coach_ref.update({"clients": new_clients})

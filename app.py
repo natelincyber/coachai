@@ -1,36 +1,21 @@
 import streamlit as st
 from dotenv import load_dotenv
 
-from utils.roles import ROLES
-from utils.db import get_user, create_user, update_user_role, get_all_clients
+from utils.db import get_all_coaches, get_user, create_user, get_all_clients
 
 from std_components.auth import login_screen, onboarding_role_selection
 from std_components.client import render_client
 from std_components.coach import render_coach
 from std_components.sidebar import sidebar
-
-from streamlit_javascript import st_javascript
-from zoneinfo import ZoneInfo
+from utils.utils import get_tz
 
 
-def get_tz():
-    user_timezone_str = st_javascript("""await (async () => {
-        return Intl.DateTimeFormat().resolvedOptions().timeZone;
-    })().then(returnValue => returnValue)""")
-   
-    if not user_timezone_str:
-        user_timezone_str = "UTC"
-
-    return ZoneInfo(user_timezone_str)
 
 
 # --- Setup ---
 st.set_page_config(page_title="AI Coaching Assistant", layout="wide")
 load_dotenv()
 
-
-def fetch_all_clients():
-    return get_all_clients()
 
 
 # --- Login UI ---
@@ -49,6 +34,7 @@ if "calendar_update_counter" not in st.session_state:
 if "edit_selected_goal" not in st.session_state:
     st.session_state.edit_selected_goal = ""
 
+
 # Get or create current user
 if "current_user" not in st.session_state:
     user = get_user({
@@ -61,9 +47,7 @@ if "current_user" not in st.session_state:
         user = create_user({
             "email": st.user.email,
             "name": st.user.name,
-            "role": None,
             "first_time_user": True,
-            "created_at": "..."  # your code for timestamp here
         })
 
     st.session_state.current_user = user
@@ -75,10 +59,14 @@ if st.session_state.current_user.first_time_user:
     onboarding_role_selection(st.user.email, st.user.name)
     st.stop()
 
+if st.session_state.current_user.role == "client":
+    if "all_coaches" not in st.session_state:
+        st.session_state.all_coaches = get_all_coaches()
+
 
 # --- Fetch clients list if coach ---
 if "all_clients" not in st.session_state and st.session_state.current_user.role == "coach":
-    st.session_state.all_clients = get_all_clients()
+    st.session_state.all_clients = get_all_clients(st.session_state.current_user.email)
 
 # --- Get user timezone ---
 if "client_tz" not in st.session_state:

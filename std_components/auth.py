@@ -2,7 +2,7 @@ import streamlit as st
 from utils.db import update_user_role, get_user
 
 def login_screen():
-    st.set_page_config(page_title="Login | Coaching Assistant", page_icon="🔐", layout="centered")
+    st.set_page_config(page_title="Login | Coaching Assistant", page_icon="🔐", layout="wide")
 
     # CSS Styles
     st.markdown("""
@@ -43,10 +43,10 @@ def login_screen():
     st.markdown('<div class="subtitle">Please log in to access your personalized dashboard</div>', unsafe_allow_html=True)
 
     # Centering the checkbox and login button horizontally
-    col_left, col_center, col_right = st.columns([8, 4, 6])
+    col_left, col_center, col_right = st.columns([2, 1, 2])
     with col_center:
         # Create two columns: one for checkbox, one for button, side by side
-        if st.button("Log in", key="login_button"):
+        if st.button("Log in", key="login_button", use_container_width=True):
             st.login()
 
     st.markdown('<hr>', unsafe_allow_html=True)
@@ -75,3 +75,4 @@ def onboarding_role_selection(user_email: str, user_name: str):
             st.rerun()
         except Exception as e:
             st.error(f"Failed to update role: {e}")
+
