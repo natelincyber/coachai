@@ -35,7 +35,6 @@ def create_user(user_info: dict) -> User:
     doc_ref = _db.collection("users").document(user_info["email"])
     doc = doc_ref.get()
     user = User(email=user_info["email"], name=user_info["name"], created_at=datetime.now(timezone.utc).isoformat(), active=True)
-    print(user.model_dump())
     if not doc.exists:
         doc_ref.set({
             **user.model_dump()
@@ -50,14 +49,27 @@ def get_latest_plan(user_email):
         return p.to_dict()
     return None
 
-def get_all_clients(coach_email):
+
+def get_all_clients(coach_email) -> List[User]:
     coach_ref = _db.collection("users").document(coach_email)
     coach_doc = coach_ref.get()
 
-    if coach_doc.exists:
-        coach_doc = coach_doc.to_dict()
-        return coach_doc.get("clients", [])
-    return []
+    if not coach_doc.exists:
+        return []
+
+    coach_data = coach_doc.to_dict()
+    client_emails = coach_data.get("clients", [])
+
+    clients = []
+    users_ref = _db.collection("users")
+
+    for email in client_emails:
+        client_doc = users_ref.document(email).get()
+        if client_doc.exists:
+            client_data = client_doc.to_dict()
+            clients.append(User(**client_data))  # Assumes keys match User fields
+
+    return clients
    
 
 
@@ -79,20 +91,27 @@ def new_user_goals(user_email: str, new_plan: dict):
 
         user_ref.update(updates)
 
-def update_user_goals(client_email: str, goals: Dict[str,Goal]) -> None:
+def update_user_goals(client_email: str, goal: Goal = None, delete: bool = False) -> None:
     user_ref = _db.collection("users").document(client_email)
     user_doc = user_ref.get()
 
     if user_doc.exists:
         user_data = user_doc.to_dict()
-        current_plan = user_data.get("currentPlan")
-        
-        current_plan["goals"] = goals["goals"]
+        current_plan = user_data.get("currentPlan", {})
+        goals_dict = current_plan.get("goals", {})
 
-        
+        if delete and goal:
+            if goal.id in goals_dict:
+                del goals_dict[goal.id]
+        elif goal:
+            goals_dict[goal.id] = goal.model_dump()
+
+        current_plan["goals"] = goals_dict
+
         user_ref.update({
             "currentPlan": current_plan
         })
+
 
 def save_user_events(user_email: str, events: List[Dict]):
     """

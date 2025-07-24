@@ -1,13 +1,14 @@
+from typing import List
 import streamlit as st
 
 from utils.utils import load_file, convert_goals
 from utils.db import get_user, new_user_goals, update_user_goals
 
 from std_components.goals_display import render_goals
-from utils.models import GoalsLiteOnly, Plan, Goal
+from utils.models import GoalsLiteOnly, Plan, Goal, User
 from utils.llm import llm_async
 
-def render_coach(user, coach_clients):
+def render_coach(user, coach_clients: List[User]):
     st.title("🧑‍🏫 Coach Dashboard")
 
     if not coach_clients:
@@ -15,7 +16,7 @@ def render_coach(user, coach_clients):
         return  # Exit early to avoid rendering the rest
 
     st.subheader("📥 Upload Coaching Summary for Client")
-    client_emails = [c["email"] for c in coach_clients]
+    client_emails = [c.email for c in coach_clients]
 
     selected_client = st.selectbox("Select a client", options=client_emails)
     num_days = st.number_input("How many days should the plan last?", min_value=1, max_value=30, value=14, step=1)
@@ -72,14 +73,12 @@ def render_coach(user, coach_clients):
                 else:
 
                     new_goal = Goal(title=new_title, task=new_task, importance=new_importance)
-                    full_client = get_user({"email": selected_client, "name": st.user.name, "role": "client"})
+                    client = get_user({"email": selected_client, "name": st.user.name, "role": "client"})
 
-                    if not full_client.currentPlan:
+                    if not client.currentPlan:
                         st.error("User has no existing plan. Generate a plan first.")
                     else:
-                        current_goals = full_client.currentPlan.goals or {}
-                        current_goals[new_goal.id] = new_goal
-                        update_user_goals(selected_client, full_client.currentPlan.model_dump())
+                        update_user_goals(selected_client, new_goal)
                         st.success(f"Goal '{new_title}' added.")
                         st.rerun()
 

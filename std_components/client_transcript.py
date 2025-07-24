@@ -69,9 +69,7 @@ def render_newgoals(user: User):
                     if not full_client.currentPlan:
                         st.error("User has no existing plan. Generate a plan first.")
                     else:
-                        current_goals = full_client.currentPlan.goals or {}
-                        current_goals[new_goal.id] = new_goal
-                        update_user_goals(selected_client, full_client.currentPlan.model_dump())
+                        update_user_goals(selected_client, new_goal)
                         st.success(f"Goal '{new_title}' added.")
                         st.rerun()
 

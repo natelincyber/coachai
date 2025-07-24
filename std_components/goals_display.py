@@ -8,7 +8,7 @@ def render_goals(client: User, user: User):
         st.info("You have no goals!")
         return
 
-    goals_data = client.currentPlan.goals  # This is now a dict: Dict[str, Goal]
+    goals_data = client.currentPlan.goals
 
     importance_colors = {
         "high": "#FF6B6B",
@@ -56,14 +56,14 @@ def render_goals(client: User, user: User):
                                 importance=new_importance
                             )
                             client.currentPlan.goals[goal.id] = updated_goal
-                            update_user_goals(client.email, client.currentPlan.model_dump())
+                            update_user_goals(client.email, updated_goal)
                             st.success("Goal updated.")
                             st.rerun()
 
                     with col_delete:
                         if st.button("🗑️ Delete", key=f"delete_{goal.id}_{idx}"):
                             del client.currentPlan.goals[goal.id]
-                            update_user_goals(client.email, client.currentPlan.model_dump())
+                            update_user_goals(client.email, goal, delete=True)
                             st.warning("Goal deleted.")
                             st.rerun()
                 else:
