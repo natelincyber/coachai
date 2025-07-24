@@ -57,8 +57,8 @@ class Event(BaseModel):
     
 
 class Plan(BaseModel):
-    goals: Optional[Dict[str, Goal]] = None
-    events: Optional[List[Event]] = []
+    goals: Dict[str, Goal] = {}
+    events: List[Event] = []
 
 class GoalsLiteOnly(BaseModel):
     goals: list[GoalLite]
@@ -85,8 +85,9 @@ class User(BaseModel):
     current_coach: Optional[str] = None
     clients: Optional[List[str]] = None
 
-    currentPlan: Optional[Plan] = None
-    previousPlans: Optional[List[Plan]] = []
+    # Plan and goal-related
+    currentPlan: Plan = Plan()
+    previousPlans: List[Plan] = []
     main_goals: Optional[Dict[str, Goal]] = None
 
     main_goal_context: Optional[Dict[str, str]] = None

@@ -5,7 +5,7 @@ from utils.db import update_user_goals
 
 def render_goals(client: User, user: User):
     if not client.currentPlan or not client.currentPlan.goals:
-        st.info("No current plan available.")
+        st.info("You have no goals!")
         return
 
     goals_data = client.currentPlan.goals  # This is now a dict: Dict[str, Goal]
