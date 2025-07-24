@@ -57,8 +57,8 @@ class Event(BaseModel):
     
 
 class Plan(BaseModel):
-    goals: Optional[Dict[str, Goal]] = None
-    events: Optional[List[Event]] = []
+    goals: Dict[str, Goal] = {}
+    events: List[Event] = []
 
 class GoalsLiteOnly(BaseModel):
     goals: list[GoalLite]
@@ -83,8 +83,8 @@ class User(BaseModel):
     active: bool
 
     # Plan and goal-related
-    currentPlan: Optional[Plan] = None
-    previousPlans: Optional[List[Plan]] = []
+    currentPlan: Plan = Plan()
+    previousPlans: List[Plan] = []
     main_goals: Optional[Dict[str, Goal]] = None
 
     # New additions for LLM chat context

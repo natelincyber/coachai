@@ -5,6 +5,8 @@ from utils.constants import CALENDAR_OPTIONS, TIME_INTERVAL
 from utils.db import get_user, save_user_events
 
 from datetime import datetime, timedelta, time, timezone
+
+from utils.models import Plan
 def parse_utc_time(utc_str):
     try:
         return datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -17,14 +19,11 @@ def format_12h(dt: datetime):
 def to_local(dt: datetime) -> datetime:
     return dt.astimezone(st.session_state.client_tz)
 
-def to_utc(dt: datetime) -> datetime:
-    return dt.astimezone(datetime.timezone.utc)
-
      
 
 def render_calendar(client):
     form_placeholder = st.empty()
-    plan = st.session_state.current_plan
+    plan : Plan = st.session_state.current_plan
     goals = plan.goals
     if "calendar_events" not in st.session_state or not st.session_state.calendar_events:
         st.session_state.calendar_events = [e.model_dump() for e in plan.events]
@@ -36,7 +35,7 @@ def render_calendar(client):
         key=f"goal_calendar_{st.session_state['calendar_update_counter']}"
     )
 
-    goal_list = list(goals.values())  # Convert to list once for reuse
+    goal_list = list(goals.values())
     goal_titles = [g.title for g in goal_list]
 
     if calendar_return:

@@ -43,9 +43,7 @@ def create_user(user_info: dict) -> User:
             "name": user_info["name"],
             "role": user_info["role"],  # default to client
             "created_at": datetime.now(timezone.utc).isoformat(),
-            "active": True,
-            "currentPlan": None,
-            "previousPlans": []
+            "active": True
         })
         doc = doc_ref.get()
     return User(**doc.to_dict())
