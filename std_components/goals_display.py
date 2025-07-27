@@ -3,7 +3,7 @@ import streamlit as st
 from utils.models import User, Goal
 from utils.db import update_user_goals
 
-def render_goals(client: User, user: User):
+def render_goals(client: User, user: User, edit=False):
     if not client.currentPlan or not client.currentPlan.goals:
         st.info("You have no goals!")
         return
@@ -38,7 +38,7 @@ def render_goals(client: User, user: User):
 
                 st.markdown("---")
 
-                if user.role == "coach":
+                if edit:
                     new_title = st.text_input("Goal Title", value=goal.title, key=title_key)
                     new_task = st.text_area("Goal Task", value=goal.task, key=task_key)
                     new_importance = st.selectbox("Importance", options=["high", "medium", "low"],

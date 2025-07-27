@@ -141,7 +141,7 @@ def add_main_goal(user_email: str, new_goal: Goal) -> None:
 
     if user_doc.exists:
         user_data = user_doc.to_dict()
-        main_goals = user_data.get("main_goals", {})
+        main_goals = user_data.get("main_goals") or {}
 
         # Avoid overwrite if key exists
         if new_goal.id not in main_goals:

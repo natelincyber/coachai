@@ -70,7 +70,7 @@ def render_maingoal(user):
                             Context from all other goals and check-ins:
                             {full_context}
 
-                            Ask 2–3 focused reflective questions to help the client assess and deepen their progress toward this main goal.
+                            Ask 2-3 focused reflective questions to help the client assess and deepen their progress toward this main goal.
                             Be concise, motivational, and specific.
                             """
 

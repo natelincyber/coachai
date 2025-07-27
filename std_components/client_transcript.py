@@ -78,6 +78,6 @@ def render_newgoals(user: User):
 
     client = get_user({"email": selected_client, "name": st.user.name, "role": "client"})
     if client.currentPlan:
-        render_goals(client, user)
+        render_goals(client, user, edit=True)
     else:
         st.info(f"No plan uploaded yet for {selected_client}.")

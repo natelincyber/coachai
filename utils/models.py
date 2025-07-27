@@ -7,6 +7,7 @@ class Goal(BaseModel):
     title: str
     task: str
     importance: Literal["high", "medium", "low", "mainGoal"]
+    parent_id: str | None = None
 
     @model_validator(mode="before")
     @classmethod
