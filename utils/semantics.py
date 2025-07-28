@@ -2,7 +2,8 @@ from typing import List
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
-from utils.models import Goal
+from utils.db import update_user_goals
+from utils.models import Goal, User
 
 
 
@@ -16,7 +17,7 @@ def embed_main_goal(goal: Goal):
 def embed_sub_goal(goal: Goal):
     return model.encode(f"{goal.task}", normalize_embeddings=False)
 
-def assign_parent_id(sub_goals: List[Goal], main_goals: List[Goal]) -> List[Goal]:
+def assign_parent_id(client: User, sub_goals: List[Goal], main_goals: List[Goal]) -> List[Goal]:
     if not sub_goals or not main_goals:
         return sub_goals
 
@@ -30,6 +31,7 @@ def assign_parent_id(sub_goals: List[Goal], main_goals: List[Goal]) -> List[Goal
     main_goal_embeddings = np.array([embed_main_goal(g) for g in main_goals])
     main_goal_ids = [g.id for g in main_goals]
 
+
     # Assign parent_id based on similarity
     for sub_goal in sub_goals_needing_parent:
         sub_embedding = embed_sub_goal(sub_goal).reshape(1, -1)
@@ -39,6 +41,7 @@ def assign_parent_id(sub_goals: List[Goal], main_goals: List[Goal]) -> List[Goal
 
         # Optional debug
         print(f"Sub-goal '{sub_goal.title}' → Parent: '{main_goals[best_idx].title}' | Score: {similarities[best_idx]:.3f}")
+        update_user_goals(client.email, sub_goal)
 
     return sub_goals
 

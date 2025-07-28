@@ -9,6 +9,7 @@ from utils.utils import convert_goals, load_file
 def render_newgoals(user: User):
 
     st.subheader("📄 Plan Goals")
+    
 
     selected_client = user.email
     num_days = st.number_input("How many days should the plan last?", min_value=1, max_value=30, value=14, step=1)
@@ -64,20 +65,22 @@ def render_newgoals(user: User):
                 else:
 
                     new_goal = Goal(title=new_title, task=new_task, importance=new_importance)
-                    full_client = get_user({"email": selected_client, "name": st.user.name, "role": "client"})
 
-                    if not full_client.currentPlan:
+                    if not user.currentPlan:
                         st.error("User has no existing plan. Generate a plan first.")
                     else:
                         update_user_goals(selected_client, new_goal)
+                        user.currentPlan.goals[new_goal.id] = new_goal
+
                         st.success(f"Goal '{new_title}' added.")
+                        st.session_state.trigger_reload = True
+
                         st.rerun()
 
             elif cancel:
                 st.info("Goal creation cancelled.")
 
-    client = get_user({"email": selected_client, "name": st.user.name, "role": "client"})
-    if client.currentPlan:
-        render_goals(client, user, edit=True)
+    if user.currentPlan:
+        render_goals(user, user, edit=True)
     else:
         st.info(f"No plan uploaded yet for {selected_client}.")

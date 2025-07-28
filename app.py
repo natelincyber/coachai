@@ -13,7 +13,7 @@ from utils.utils import get_tz
 
 
 # --- Setup ---
-st.set_page_config(page_title="AI Coaching Assistant", layout="wide")
+st.set_page_config(page_title="CoachAI", layout="wide")
 load_dotenv()
 
 
@@ -33,6 +33,9 @@ if "calendar_update_counter" not in st.session_state:
 
 if "edit_selected_goal" not in st.session_state:
     st.session_state.edit_selected_goal = ""
+
+if "trigger_reload" not in st.session_state:
+    st.session_state.trigger_reload = False
 
 
 # Get or create current user

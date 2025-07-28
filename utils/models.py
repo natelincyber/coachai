@@ -8,6 +8,7 @@ class Goal(BaseModel):
     task: str
     importance: Literal["high", "medium", "low", "mainGoal"]
     parent_id: str | None = None
+    progress: int = 0
 
     @model_validator(mode="before")
     @classmethod

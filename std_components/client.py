@@ -16,7 +16,7 @@ def render_client(user: User):
     # Always render the tabs
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "🏁 Your Goals", "📄 Plan Goals", "📅 Calendar", 
-        "✅ Today's Goals", "🎯 Main Goal Progress", "🧭 My Journey"
+        "✅ Today's Goals", "🎯 Main Goal Checkin", "🧭 My Journey"
     ])
 
     with tab1:

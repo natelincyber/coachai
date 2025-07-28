@@ -1,5 +1,4 @@
 import streamlit as st
-
 from utils.models import User, Goal
 from utils.db import update_user_goals
 
@@ -11,23 +10,26 @@ def render_goals(client: User, user: User, edit=False):
     goals_data = client.currentPlan.goals
 
     importance_colors = {
+        "main": "#DB4437",   # Red for main goals
         "high": "#FF6B6B",
         "medium": "#FFA94D",
         "low": "#69DB7C"
     }
 
     goals_by_importance = {
+        "main": [],
         "high": [],
         "medium": [],
         "low": []
     }
 
     for goal in goals_data.values():
-        goals_by_importance[goal.importance.lower()].append(goal)
+        key = "main" if goal.importance == "mainGoal" else goal.importance.lower()
+        goals_by_importance[key].append(goal)
 
-    col_high, col_medium, col_low = st.columns(3)
+    col_main, col_high, col_medium, col_low = st.columns(4)
 
-    for label, col in zip(["high", "medium", "low"], [col_high, col_medium, col_low]):
+    for label, col in zip(["main", "high", "medium", "low"], [col_main, col_high, col_medium, col_low]):
         with col:
             st.markdown(f"#### {label.capitalize()} Importance")
             for idx, goal in enumerate(goals_by_importance[label]):
@@ -41,9 +43,13 @@ def render_goals(client: User, user: User, edit=False):
                 if edit:
                     new_title = st.text_input("Goal Title", value=goal.title, key=title_key)
                     new_task = st.text_area("Goal Task", value=goal.task, key=task_key)
-                    new_importance = st.selectbox("Importance", options=["high", "medium", "low"],
-                                                index=["high", "medium", "low"].index(goal.importance.lower()),
-                                                key=importance_key)
+
+                    if label == "main":
+                        new_importance = "mainGoal"
+                    else:
+                        new_importance = st.selectbox("Importance", options=["high", "medium", "low"],
+                                                    index=["high", "medium", "low"].index(goal.importance.lower()),
+                                                    key=importance_key)
 
                     col_save, col_delete = st.columns([1, 1])
 
@@ -57,6 +63,7 @@ def render_goals(client: User, user: User, edit=False):
                             )
                             client.currentPlan.goals[goal.id] = updated_goal
                             update_user_goals(client.email, updated_goal)
+                            st.session_state.trigger_reload = True
                             st.success("Goal updated.")
                             st.rerun()
 
@@ -64,10 +71,14 @@ def render_goals(client: User, user: User, edit=False):
                         if st.button("🗑️ Delete", key=f"delete_{goal.id}_{idx}"):
                             del client.currentPlan.goals[goal.id]
                             update_user_goals(client.email, goal, delete=True)
+                            st.session_state.trigger_reload = True
                             st.warning("Goal deleted.")
                             st.rerun()
                 else:
                     color = importance_colors[label]
+                    if st.session_state.trigger_reload:
+                        print(client.currentPlan.goals)
+                        st.session_state.trigger_reload = False
                     col.markdown(f"""
                         <div style="border:1px solid #ccc; border-radius:8px; padding:12px; margin-bottom:10px;">
                             <h5 style="margin:0;">{goal.title}</h5>
